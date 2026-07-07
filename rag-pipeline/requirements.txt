@@ -1,0 +1,10 @@
+langchain-google-genai
+google-generativeai
+python-dotenv
+langchain
+langchain-chroma
+langchain-huggingface
+fastapi
+uvicorn
+pydantic
+rank-bm25
