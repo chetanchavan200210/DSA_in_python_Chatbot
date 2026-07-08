@@ -4,7 +4,7 @@ from pathlib import Path
 # ----------------------------
 # Project Paths
 # ----------------------------
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATA_DIR = BASE_DIR / "data"
 CHROMA_DIR = BASE_DIR / "chroma_db"

@@ -1,16 +1,11 @@
 import time
-
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
-#from langchain_ollama import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from hybrid_retriever import retrieve_documents
-
-#from langchain_ollama import ChatOllama
 
 from guardrails import (
     detect_prompt_injection,
@@ -20,22 +15,21 @@ from guardrails import (
 
 from prompts import SYSTEM_PROMPT
 
-
+# ----------------------------
+# Load Environment
+# ----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 print("GOOGLE_API_KEY =", os.getenv("GOOGLE_API_KEY"))
+
 # ----------------------------
 # Load LLM
 # ----------------------------
 llm = ChatGoogleGenerativeAI(
-   model="gemini-2.5-flash",
+    model="gemini-2.5-flash",
     temperature=0.2,
 )
-#llm = ChatOllama(
-#     model="llama3.2",
-#     temperature=4,
-#)
 
 # ----------------------------
 # Ask Question
@@ -67,7 +61,7 @@ def ask_question(question):
     # ----------------------------
     if detect_prompt_injection(question):
         return {
-            "answer": "Your request couldn't be processed. Please ask a question related to Data Structures and Algorithms.",
+            "answer": "Your request couldn't be processed. Please ask a question related to the uploaded documents.",
             "sources": [],
             "related_questions": [],
         }
@@ -77,7 +71,15 @@ def ask_question(question):
     # ----------------------------
     retrieval_start = time.time()
 
-    docs = retrieve_documents(question)
+    try:
+        docs = retrieve_documents(question)
+    except Exception as e:
+        print(f"[Retrieval Error] {e}")
+        return {
+            "answer": "An internal retrieval error occurred.",
+            "sources": [],
+            "related_questions": [],
+        }
 
     retrieval_time = time.time() - retrieval_start
     print(f"\nRetrieval Time: {retrieval_time:.2f} sec")
@@ -133,7 +135,15 @@ Rules:
     # ----------------------------
     llm_start = time.time()
 
-    response = llm.invoke(prompt)
+    try:
+        response = llm.invoke(prompt)
+    except Exception as e:
+        print(f"[LLM Error] {e}")
+        return {
+            "answer": "An internal LLM error occurred.",
+            "sources": [],
+            "related_questions": [],
+        }
 
     llm_time = time.time() - llm_start
 
@@ -155,7 +165,7 @@ Rules:
 
     for marker in markers:
         if marker.lower() in answer.lower():
-            answer = answer[:answer.lower().find(marker.lower())].strip()
+            answer = answer[: answer.lower().find(marker.lower())].strip()
             break
 
     # ----------------------------
@@ -165,7 +175,6 @@ Rules:
     sources = []
 
     for doc in docs:
-
         key = (
             doc.metadata["source"],
             doc.metadata["page"],
@@ -173,7 +182,6 @@ Rules:
 
         if key not in seen:
             seen.add(key)
-
             sources.append(
                 {
                     "document": key[0],
@@ -211,5 +219,6 @@ if __name__ == "__main__":
         print(result["answer"])
 
         print("\nSources")
+
         for src in result["sources"]:
             print(f"- {src['document']} (Page {src['page']})")
