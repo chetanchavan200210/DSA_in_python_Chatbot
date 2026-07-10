@@ -12,10 +12,10 @@ function App() {
   const [isOpen, setIsOpen] = useState(false);
   const chatBoxRef = useRef(null);
   const [relatedQuestions, setRelatedQuestions] = useState([
-    "What is a linked list?",
-    "Explain binary search",
-    "Time complexity basics",
-    "What is recursion?"
+    "What are the types of dental radiographs?",
+    "Explain linked lists in Python",
+    "What is bitewing radiography?",
+    "How to implement binary search in Python?"
   ]);
   const [typedText, setTypedText] = useState("");
   const scrollToBottom = () => {
@@ -29,7 +29,7 @@ function App() {
   }, [chat, isLoading]);
 
   useEffect(() => {
-    const text = "Ask questions about Data Structures and Algorithms";
+    const text = "Dental Radiology Atlas & DSA in Python";
     let index = 0;
     const interval = setInterval(() => {
       if (index < text.length) {
@@ -104,81 +104,164 @@ function App() {
 
   const generateRelatedQuestions = (query) => {
     const queryLower = query.toLowerCase();
+    const dentalQuestions = {
+      "radiograph": [
+        "Types of dental radiographs",
+        "Periapical vs bitewing radiographs",
+        "Panoramic radiography basics",
+        "Cone beam CT applications"
+      ],
+      "caries": [
+        "Detecting dental caries on X-rays",
+        "Classification of caries",
+        "Interproximal caries detection",
+        "Root caries diagnosis"
+      ],
+      "periapical": [
+        "Periapical radiograph techniques",
+        "Interpreting periapical lesions",
+        "Periapical vs panoramic",
+        "PA radiograph positioning"
+      ],
+      "periodontal": [
+        "Periodontal disease on radiographs",
+      "Bone loss patterns",
+        "Furcation involvement detection",
+        "Periodontal radiograph analysis"
+      ],
+      "impaction": [
+        "Third molar impaction classification",
+        "Impacted tooth radiograph signs",
+        "Surgical planning for impactions",
+        "Complications of impactions"
+      ],
+      "cyst": [
+        "Radicular cyst characteristics",
+        "Dentigerous cyst radiograph features",
+        "Odontogenic vs non-odontogenic cysts",
+        "Cyst vs tumor differentiation"
+      ],
+      "trauma": [
+        "Dental trauma radiograph assessment",
+        "Fracture patterns on X-rays",
+        "Avulsion injury evaluation",
+        "Root fracture detection"
+      ],
+      "endodontic": [
+        "Endodontic treatment radiograph evaluation",
+        "Root canal filling assessment",
+        "Post-treatment radiograph analysis",
+        "Failed endodontic therapy signs"
+      ],
+      "bone": [
+        "Normal bone patterns on radiographs",
+        "Osteoporosis dental radiograph signs",
+        "Bone quality assessment",
+        "Radiographic bone density"
+      ],
+      "interpretation": [
+        "Radiograph interpretation basics",
+        "Common radiographic errors",
+        "Artifact identification",
+        "Normal anatomy vs pathology"
+      ]
+    };
+
     const dsaQuestions = {
       "linked list": [
-        "What are the types of linked lists?",
-        "How to reverse a linked list?",
-        "Linked list vs Array comparison",
-        "Detect cycle in linked list"
+        "What are the types of linked lists in Python?",
+        "How to reverse a linked list in Python?",
+        "Linked list vs Array in Python",
+        "Detect cycle in linked list Python"
       ],
       "binary search": [
         "Time complexity of binary search",
-        "Binary search implementation",
+        "Binary search implementation in Python",
         "Binary search tree vs binary search",
-        "When to use binary search?"
+        "When to use binary search in Python?"
       ],
       "sorting": [
-        "Bubble sort algorithm",
-        "Quick sort vs Merge sort",
+        "Bubble sort algorithm in Python",
+        "Quick sort vs Merge sort in Python",
         "Time complexity of sorting algorithms",
         "Stable vs unstable sorting"
       ],
       "recursion": [
-        "Recursion vs iteration",
+        "Recursion vs iteration in Python",
         "Base case in recursion",
         "Stack overflow in recursion",
         "Recursive vs iterative approach"
       ],
       "array": [
-        "Dynamic array vs static array",
-        "2D array operations",
+        "Python list vs array",
+        "2D array operations in Python",
         "Array time complexity",
         "Array vs linked list"
       ],
       "tree": [
-        "Binary tree traversal",
+        "Binary tree traversal in Python",
         "AVL tree rotation",
         "Tree vs Graph",
         "Height vs depth of tree"
       ],
       "graph": [
-        "BFS vs DFS traversal",
-        "Dijkstra's algorithm",
+        "BFS vs DFS traversal in Python",
+        "Dijkstra's algorithm in Python",
         "Graph representation methods",
         "Topological sorting"
       ],
       "stack": [
-        "Stack implementation using array",
+        "Stack implementation using Python list",
         "Queue vs Stack",
         "Stack applications",
         "Stack overflow explanation"
       ],
       "queue": [
-        "Circular queue implementation",
-        "Priority queue",
+        "Queue implementation in Python",
+        "Priority queue in Python",
         "Queue vs Stack",
         "Deque operations"
       ],
       "hash": [
         "Hash collision resolution",
-        "Hash table implementation",
+        "Python dictionary implementation",
         "Load factor in hashing",
         "Hash map vs hash table"
+      ],
+      "python": [
+        "Python list operations",
+        "Python dictionary methods",
+        "Python set operations",
+        "Python tuple vs list"
+      ],
+      "algorithm": [
+        "Algorithm complexity analysis",
+        "Big O notation in Python",
+        "Space complexity basics",
+        "Algorithm design patterns"
       ]
     };
 
+    // Check dental questions first
+    for (const [keyword, questions] of Object.entries(dentalQuestions)) {
+      if (queryLower.includes(keyword)) {
+        return questions;
+      }
+    }
+
+    // Check DSA questions
     for (const [keyword, questions] of Object.entries(dsaQuestions)) {
       if (queryLower.includes(keyword)) {
         return questions;
       }
     }
 
-    // Default related questions if no match
+    // Default related questions if no match - mix of both topics
     return [
-      "What is time complexity?",
-      "Explain space complexity",
-      "Big O notation examples",
-      "Data structures basics"
+      "What are the types of dental radiographs?",
+      "How to implement linked list in Python?",
+      "Binary search in Python",
+      "Radiographic anatomy basics"
     ];
   };
 
@@ -193,7 +276,7 @@ function App() {
       <div className="shape shape-4"></div>
       <div className="shape shape-5"></div>
     </div>
-    <h1 className="title-animate">DSA Chat Bot</h1>
+    <h1 className="title-animate">Dental Radiology & Python DSA</h1>
     <p className="typing-text">{typedText}<span className="cursor">|</span></p>
    
   </div>
@@ -213,7 +296,7 @@ function App() {
         <div className="chat-widget">
           <div className="chat-header">
             <div className="chat-header-info">
-              <span className="chat-header-title">DSA Chat Bot</span>
+              <span className="chat-header-title">Radiology & Python DSA Assistant</span>
               <span className="chat-header-status">Online</span>
             </div>
             <button

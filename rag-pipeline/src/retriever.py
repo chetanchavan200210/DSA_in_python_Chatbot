@@ -1,17 +1,17 @@
-from pathlib import Path
+# from pathlib import Path
+
+# from langchain_chroma import Chroma
 
 from langchain_chroma import Chroma
 
+from config import CHROMA_DIR, TOP_K
 from embeddings import get_embedding_model
-
-
-# ----------------------------
 # Project Paths
 # ----------------------------
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# BASE_DIR = Path(__file__).resolve().parent.parent
 
-CHROMA_DIR = BASE_DIR / "chroma_db"
+# CHROMA_DIR = BASE_DIR / "chroma_db"
 
 
 # ----------------------------
@@ -37,7 +37,7 @@ def get_vector_store():
 
 
         embedding_model = get_embedding_model()
-
+    
 
         _vector_store = Chroma(
             persist_directory=str(CHROMA_DIR),
@@ -55,8 +55,7 @@ def get_vector_store():
 # ----------------------------
 # Similarity Search
 # ----------------------------
-
-def vector_search(query, k=5):
+def vector_search(query, k=TOP_K):
 
     vector_store = get_vector_store()
 
@@ -75,7 +74,7 @@ def vector_search(query, k=5):
 # Format Retrieved Context
 # ----------------------------
 
-def get_context(query, k=5):
+def get_context(query, k=TOP_K):
 
     results = vector_search(query, k)
 

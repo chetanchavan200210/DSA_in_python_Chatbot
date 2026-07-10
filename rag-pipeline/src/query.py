@@ -1,18 +1,18 @@
 import time
-import os
+# import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from hybrid_retriever import retrieve_documents
-
+from config import LLM_MODEL, TEMPERATURE
 from guardrails import (
     detect_prompt_injection,
     validate_question_length,
     validate_empty_question,
+    validate_repeated_characters,
 )
-
 from prompts import SYSTEM_PROMPT
 
 # ----------------------------
@@ -21,16 +21,21 @@ from prompts import SYSTEM_PROMPT
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-print("GOOGLE_API_KEY =", os.getenv("GOOGLE_API_KEY"))
+
 
 # ----------------------------
 # Load LLM
 # ----------------------------
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-)
+# llm = ChatGoogleGenerativeAI(
+#     model="gemini-2.5-flash",
+#     temperature=0.2,
+# )
 
+
+llm = ChatGoogleGenerativeAI(
+    model=LLM_MODEL,
+    temperature=TEMPERATURE,
+)
 # ----------------------------
 # Ask Question
 # ----------------------------
@@ -39,6 +44,13 @@ def ask_question(question):
     # ----------------------------
     # Guardrail 1 : Empty Question
     # ----------------------------
+    if not validate_repeated_characters(question):
+        return {
+        "answer": "Please enter a meaningful question.",
+        "sources": [],
+        "related_questions": [],
+    }
+    
     if not validate_empty_question(question):
         return {
             "answer": "Please enter a valid question.",
@@ -98,13 +110,18 @@ def ask_question(question):
     # Build Context
     # ----------------------------
     context = "\n\n".join(
-        [
-            f"Document: {doc.metadata['source']}\n"
-            f"Page: {doc.metadata['page']}\n\n"
-            f"{doc.page_content}"
-            for doc in docs
-        ]
-    )
+    [
+        f"""
+==============================
+Document : {doc.metadata.get("source")}
+Page     : {doc.metadata.get("page")}
+
+Content:
+{doc.page_content}
+"""
+        for doc in docs
+    ]
+)
 
     # ----------------------------
     # Prompt
@@ -112,22 +129,21 @@ def ask_question(question):
     prompt = f"""
 {SYSTEM_PROMPT}
 
-Context:
+==============================
+RETRIEVED DOCUMENTS
+==============================
+
 {context}
 
-Question:
+==============================
+USER QUESTION
+==============================
+
 {question}
 
-Answer ONLY the user's question.
-
-Rules:
-- Do NOT generate follow-up questions.
-- Do NOT suggest additional questions.
-- Do NOT write:
-    Here are related questions
-    Related Questions
-    Follow-up Questions
-- Return only the answer text.
+==============================
+ANSWER
+==============================
 """
 
     # ----------------------------
@@ -147,26 +163,28 @@ Rules:
 
     llm_time = time.time() - llm_start
 
-    print(f"LLM Time: {llm_time:.2f} sec")
-    print(f"Total Time: {retrieval_time + llm_time:.2f} sec")
-
+    print("\n========== Performance ==========")
+    print(f"Retrieval : {retrieval_time:.2f} sec")
+    print(f"LLM       : {llm_time:.2f} sec")
+    print(f"Total     : {retrieval_time + llm_time:.2f} sec")
+    print("=================================\n")
     # ----------------------------
     # Clean Answer
     # ----------------------------
     answer = response.content.strip()
 
-    markers = [
-        "Here are",
-        "Related Questions",
-        "related questions",
-        "Follow-up Questions",
-        "follow-up questions",
-    ]
+    # markers = [
+    #     "Here are",
+    #     "Related Questions",
+    #     "related questions",
+    #     "Follow-up Questions",
+    #     "follow-up questions",
+    # ]
 
-    for marker in markers:
-        if marker.lower() in answer.lower():
-            answer = answer[: answer.lower().find(marker.lower())].strip()
-            break
+    # for marker in markers:
+    #     if marker.lower() in answer.lower():
+    #         answer = answer[: answer.lower().find(marker.lower())].strip()
+    #         break
 
     # ----------------------------
     # Sources
@@ -176,9 +194,11 @@ Rules:
 
     for doc in docs:
         key = (
-            doc.metadata["source"],
-            doc.metadata["page"],
-        )
+    doc.metadata.get("source"),
+    doc.metadata.get("page"),
+    doc.metadata.get("chunk_id"),
+)
+        
 
         if key not in seen:
             seen.add(key)

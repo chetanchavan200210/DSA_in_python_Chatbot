@@ -1,6 +1,7 @@
+import re
 from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
-
+from config import TOP_K
 from retriever import get_vector_store
 
 
@@ -39,7 +40,7 @@ documents = load_documents()
 
 
 tokenized_docs = [
-    doc.page_content.lower().split()
+    re.findall(r"\w+", doc.page_content.lower())
     for doc in documents
 ]
 
@@ -52,9 +53,9 @@ bm25 = BM25Okapi(tokenized_docs)
 # BM25 Search
 # ----------------------------
 
-def bm25_search(query, k=5):
+def bm25_search(query, k=TOP_K):
 
-    tokenized_query = query.lower().split()
+    tokenized_query = re.findall(r"\w+", query.lower())
 
 
     scores = bm25.get_scores(

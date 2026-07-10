@@ -1,3 +1,5 @@
+import re
+
 # ----------------------------
 # Guardrail Configuration
 # ----------------------------
@@ -31,7 +33,6 @@ BAD_PATTERNS = [
     # HTML / JavaScript Injection
     "<html>",
     "</html>",
-    ".bat"
     "<script>",
     "</script>",
     "javascript:",
@@ -50,6 +51,14 @@ BAD_PATTERNS = [
     "window.location",
     "eval(",
     "fetch(",
+
+    # File / Command Injection
+    ".bat",
+    ".cmd",
+    ".exe",
+    ".sh",
+    "powershell",
+    "cmd.exe",
 ]
 
 # ----------------------------
@@ -58,11 +67,26 @@ BAD_PATTERNS = [
 def validate_empty_question(question: str) -> bool:
     return bool(question.strip())
 
+
 # ----------------------------
 # Question Length Check
 # ----------------------------
 def validate_question_length(question: str) -> bool:
-    return len(question) <= MAX_QUESTION_LENGTH
+    return len(question.strip()) <= MAX_QUESTION_LENGTH
+
+
+# ----------------------------
+# Repeated Character Check
+# ----------------------------
+def validate_repeated_characters(question: str) -> bool:
+    """
+    Reject inputs like:
+    aaaaaaaaaaaaaaaaaaaaa
+    !!!!!!!!
+    1111111111111111
+    """
+    return re.search(r"(.)\1{20,}", question) is None
+
 
 # ----------------------------
 # Prompt Injection Check
