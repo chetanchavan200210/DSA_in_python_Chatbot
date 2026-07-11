@@ -1,244 +1,557 @@
 import time
-# import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+
+from config import (
+    LLM_PROVIDER,
+    LLM_MODEL,
+    OLLAMA_MODEL,
+    TEMPERATURE,
+)
+
+from chat_history import (
+    get_history,
+    save_message,
+)
 
 from hybrid_retriever import retrieve_documents
-from config import LLM_MODEL, TEMPERATURE
+
 from guardrails import (
     detect_prompt_injection,
     validate_question_length,
     validate_empty_question,
     validate_repeated_characters,
 )
+
 from prompts import SYSTEM_PROMPT
 
-# ----------------------------
-# Load Environment
-# ----------------------------
+
+
+# --------------------------------------------------
+# Load Environment Variables
+# --------------------------------------------------
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
 
-
-
-# ----------------------------
-# Load LLM
-# ----------------------------
-# llm = ChatGoogleGenerativeAI(
-#     model="gemini-2.5-flash",
-#     temperature=0.2,
-# )
-
-
-llm = ChatGoogleGenerativeAI(
-    model=LLM_MODEL,
-    temperature=TEMPERATURE,
+load_dotenv(
+    BASE_DIR / ".env"
 )
-# ----------------------------
-# Ask Question
-# ----------------------------
-def ask_question(question):
 
-    # ----------------------------
-    # Guardrail 1 : Empty Question
-    # ----------------------------
-    if not validate_repeated_characters(question):
-        return {
-        "answer": "Please enter a meaningful question.",
-        "sources": [],
-        "related_questions": [],
-    }
-    
-    if not validate_empty_question(question):
-        return {
-            "answer": "Please enter a valid question.",
-            "sources": [],
-            "related_questions": [],
-        }
 
-    # ----------------------------
-    # Guardrail 2 : Length Check
-    # ----------------------------
-    if not validate_question_length(question):
-        return {
-            "answer": "Your question is too long. Please keep it under 500 characters.",
-            "sources": [],
-            "related_questions": [],
-        }
 
-    # ----------------------------
-    # Guardrail 3 : Prompt Injection
-    # ----------------------------
-    if detect_prompt_injection(question):
-        return {
-            "answer": "Your request couldn't be processed. Please ask a question related to the uploaded documents.",
-            "sources": [],
-            "related_questions": [],
-        }
+# --------------------------------------------------
+# Initialize LLM
+# --------------------------------------------------
 
-    # ----------------------------
-    # Retrieve Documents
-    # ----------------------------
-    retrieval_start = time.time()
+if LLM_PROVIDER == "gemini":
 
-    try:
-        docs = retrieve_documents(question)
-    except Exception as e:
-        print(f"[Retrieval Error] {e}")
-        return {
-            "answer": "An internal retrieval error occurred.",
-            "sources": [],
-            "related_questions": [],
-        }
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-    retrieval_time = time.time() - retrieval_start
-    print(f"\nRetrieval Time: {retrieval_time:.2f} sec")
+    llm = ChatGoogleGenerativeAI(
+        model=LLM_MODEL,
+        temperature=TEMPERATURE,
+    )
 
-    # ----------------------------
-    # Guardrail 4 : No Documents
-    # ----------------------------
-    if not docs:
-        return {
-            "answer": "I couldn't find any relevant information in the uploaded documents.",
-            "sources": [],
-            "related_questions": [],
-        }
 
-    # ----------------------------
-    # Build Context
-    # ----------------------------
-    context = "\n\n".join(
-    [
-        f"""
+elif LLM_PROVIDER == "ollama":
+
+    from langchain_ollama import ChatOllama
+
+    llm = ChatOllama(
+        model=OLLAMA_MODEL,
+        temperature=TEMPERATURE,
+    )
+
+
+else:
+
+    raise ValueError(
+        f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}"
+    )
+
+
+
+# --------------------------------------------------
+# Context Builder
+# --------------------------------------------------
+
+def build_context(
+        docs,
+        max_length=12000
+):
+
+    context_parts = []
+
+
+    for doc in docs:
+
+
+        source = doc.metadata.get(
+            "source",
+            "unknown"
+        )
+
+        page = doc.metadata.get(
+            "page",
+            "unknown"
+        )
+
+        file_type = doc.metadata.get(
+            "file_type",
+            "unknown"
+        )
+
+
+        context_parts.append(
+f"""
 ==============================
-Document : {doc.metadata.get("source")}
-Page     : {doc.metadata.get("page")}
+Document : {source}
+Page     : {page}
+Type     : {file_type}
 
 Content:
 {doc.page_content}
 """
-        for doc in docs
-    ]
-)
+        )
 
-    # ----------------------------
-    # Prompt
-    # ----------------------------
-    prompt = f"""
-{SYSTEM_PROMPT}
 
-==============================
-RETRIEVED DOCUMENTS
-==============================
+    context = "\n\n".join(
+        context_parts
+    )
 
-{context}
 
-==============================
-USER QUESTION
-==============================
+    return context[:max_length]
 
-{question}
 
-==============================
-ANSWER
-==============================
-"""
 
-    # ----------------------------
-    # LLM
-    # ----------------------------
-    llm_start = time.time()
+# --------------------------------------------------
+# Extract Sources
+# --------------------------------------------------
 
-    try:
-        response = llm.invoke(prompt)
-    except Exception as e:
-        print(f"[LLM Error] {e}")
-        return {
-            "answer": "An internal LLM error occurred.",
-            "sources": [],
-            "related_questions": [],
-        }
+def extract_sources(docs):
 
-    llm_time = time.time() - llm_start
-
-    print("\n========== Performance ==========")
-    print(f"Retrieval : {retrieval_time:.2f} sec")
-    print(f"LLM       : {llm_time:.2f} sec")
-    print(f"Total     : {retrieval_time + llm_time:.2f} sec")
-    print("=================================\n")
-    # ----------------------------
-    # Clean Answer
-    # ----------------------------
-    answer = response.content.strip()
-
-    # markers = [
-    #     "Here are",
-    #     "Related Questions",
-    #     "related questions",
-    #     "Follow-up Questions",
-    #     "follow-up questions",
-    # ]
-
-    # for marker in markers:
-    #     if marker.lower() in answer.lower():
-    #         answer = answer[: answer.lower().find(marker.lower())].strip()
-    #         break
-
-    # ----------------------------
-    # Sources
-    # ----------------------------
-    seen = set()
     sources = []
 
+    seen = set()
+
+
     for doc in docs:
+
+
         key = (
-    doc.metadata.get("source"),
-    doc.metadata.get("page"),
-    doc.metadata.get("chunk_id"),
-)
-        
+
+            doc.metadata.get("source"),
+
+            doc.metadata.get("page"),
+
+            doc.metadata.get("chunk_id")
+
+        )
+
 
         if key not in seen:
+
+
             seen.add(key)
+
+
             sources.append(
                 {
                     "document": key[0],
                     "page": key[1],
+                    "chunk_id": key[2],
+                    "file_type":
+                        doc.metadata.get(
+                            "file_type"
+                        )
                 }
             )
 
-    # ----------------------------
-    # Return
-    # ----------------------------
+
+    return sources
+
+
+
+# --------------------------------------------------
+# Ask Question
+# --------------------------------------------------
+
+def ask_question(
+        question,
+        session_id=None
+):
+
+
+    # ------------------------------------------
+    # Input Validation
+    # ------------------------------------------
+
+    if not validate_repeated_characters(question):
+
+        return {
+            "answer":
+                "Please enter a meaningful question.",
+            "sources": [],
+            "related_questions": [],
+        }
+
+
+
+    if not validate_empty_question(question):
+
+        return {
+            "answer":
+                "Please enter a valid question.",
+            "sources": [],
+            "related_questions": [],
+        }
+
+
+
+    if not validate_question_length(question):
+
+        return {
+            "answer":
+                "Your question is too long. Please keep it under 500 characters.",
+            "sources": [],
+            "related_questions": [],
+        }
+
+
+
+    # ------------------------------------------
+    # Prompt Injection Protection
+    # ------------------------------------------
+
+    if detect_prompt_injection(question):
+
+        return {
+
+            "answer":
+                "Please ask questions related to the uploaded medical documents.",
+
+            "sources": [],
+
+            "related_questions": [],
+        }
+
+
+
+    # ------------------------------------------
+    # Load Chat History
+    # ------------------------------------------
+
+    history = []
+
+
+    if session_id:
+
+        history = get_history(
+            session_id
+        )
+
+
+
+    conversation = "\n".join(
+
+        [
+
+            f"{msg['role']}: {msg['content']}"
+
+            for msg in history
+
+        ]
+
+    )
+
+
+
+    # ------------------------------------------
+    # Retrieval
+    # ------------------------------------------
+
+    retrieval_start = time.time()
+
+
+    try:
+
+        docs = retrieve_documents(
+            question
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            "[Retrieval Error]",
+            e
+        )
+
+
+        return {
+
+            "answer":
+                "Retrieval failed internally.",
+
+            "sources": [],
+
+            "related_questions": [],
+
+        }
+
+
+
+    retrieval_time = (
+        time.time()
+        -
+        retrieval_start
+    )
+
+
+    print(
+        f"Retrieval Time: {retrieval_time:.2f}s"
+    )
+
+
+
+    if not docs:
+
+
+        return {
+
+            "answer":
+                "I couldn't find relevant information in the uploaded documents.",
+
+            "sources": [],
+
+            "related_questions": [],
+
+        }
+
+
+
+    # ------------------------------------------
+    # Build Context
+    # ------------------------------------------
+
+    context = build_context(
+        docs
+    )
+
+
+
+    # ------------------------------------------
+    # Prompt Construction
+    # ------------------------------------------
+
+    prompt = f"""
+
+{SYSTEM_PROMPT}
+
+
+==============================
+PREVIOUS CONVERSATION
+==============================
+
+{conversation}
+
+
+==============================
+MEDICAL DOCUMENT CONTEXT
+==============================
+
+{context}
+
+
+==============================
+CURRENT USER QUESTION
+==============================
+
+{question}
+
+
+==============================
+ANSWER
+==============================
+
+"""
+
+
+
+    # ------------------------------------------
+    # LLM Generation
+    # ------------------------------------------
+
+    llm_start = time.time()
+
+
+    try:
+
+        response = llm.invoke(
+            prompt
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            "[LLM Error]",
+            e
+        )
+
+
+        return {
+
+            "answer":
+                "LLM generation failed internally.",
+
+            "sources": [],
+
+            "related_questions": [],
+
+        }
+
+
+
+    llm_time = (
+        time.time()
+        -
+        llm_start
+    )
+
+
+
+    print("\n========== Performance ==========")
+
+    print(
+        f"Retrieval : {retrieval_time:.2f}s"
+    )
+
+    print(
+        f"LLM       : {llm_time:.2f}s"
+    )
+
+    print(
+        f"Total     : {retrieval_time + llm_time:.2f}s"
+    )
+
+    print(
+        "=================================\n"
+    )
+
+
+
+    # ------------------------------------------
+    # Prepare Response
+    # ------------------------------------------
+
+    answer = str(
+        response.content
+    ).strip()
+
+
+
+    sources = extract_sources(
+        docs
+    )
+
+
+
+    # ------------------------------------------
+    # Save Chat History
+    # ------------------------------------------
+
+    if session_id:
+
+
+        save_message(
+
+            session_id,
+
+            "user",
+
+            question
+
+        )
+
+
+        save_message(
+
+            session_id,
+
+            "assistant",
+
+            answer
+
+        )
+
+
+
     return {
-        "answer": answer,
-        "sources": sources,
-        "related_questions": [],
+
+        "answer":
+            answer,
+
+        "sources":
+            sources,
+
+        "related_questions":
+            [],
+
     }
 
 
-# ----------------------------
-# Run from Terminal
-# ----------------------------
+
+# --------------------------------------------------
+# Terminal Testing
+# --------------------------------------------------
+
 if __name__ == "__main__":
+
+
+    session = "test-session"
+
 
     while True:
 
-        question = input("\nAsk a question (type 'exit' to quit): ")
+
+        question = input(
+            "\nAsk Question (exit): "
+        )
+
 
         if question.lower() == "exit":
+
             break
 
-        result = ask_question(question)
 
-        print("\n==============================")
-        print("Answer")
-        print("==============================")
-        print(result["answer"])
 
-        print("\nSources")
+        result = ask_question(
+
+            question,
+
+            session_id=session
+
+        )
+
+
+        print("\n====================")
+
+        print(
+            result["answer"]
+        )
+
+
+        print("\nSources:")
+
 
         for src in result["sources"]:
-            print(f"- {src['document']} (Page {src['page']})")
+
+
+            print(
+                f"- {src['document']} "
+                f"(Page {src['page']})"
+            )

@@ -35656,5 +35656,27 @@
         "file_hash": "47d69ffe6e5276160794f652002b23670416032358399e11b8f5289f13ac51d2",
         "text_preview": "529-540 42, 611 615-616 Osteoma, central 216,232, Pseudotumors; nonodontogenic 618-619 213-246 multiple 619 odontogenic 197-212 7 osteoid, see osteoid osteoma Sarcoma 218,242-243, 651-656 peripheral 2",
         "text": "529-540 42, 611 615-616 Osteoma, central 216,232, Pseudotumors; nonodontogenic 618-619 213-246 multiple 619 odontogenic 197-212 7 osteoid, see osteoid osteoma Sarcoma 218,242-243, 651-656 peripheral 216,233, 621-624 Schuller projections; skull Zonography 23,25-26,121 Osteomyelitis 153-158, 416-429 radiographs 330-332 radiographic signs 156 R Sialography 141-142, 382-391 Osteopetrosis 217,239, 645 Sialolith 141-144, 383-391 Osteoporosis 216, 237, 634-636 Sinus pathology, dentogenic Osteoradionecrosis 151, 158,430 Radiation exposure, protection 159-169, 434-460 Osteosarcoma 242, 651-656 3-6 Sinusitis 164-167 Overdevelopment;, reduction 108 Radio-osteomyelitis 151 dentogenic 164, 166, 168"
+    },
+    {
+        "id": 3354,
+        "chunk_id": "test_8_p1_c1",
+        "document": "test_8.png",
+        "page": 1,
+        "chunk_index": 3354,
+        "char_count": 113,
+        "file_hash": "fa40b8c9a39399e6efd0e804c641ccd607154b7a5f4904fc60af8f26f6d66aba",
+        "text_preview": "OCR TEXT\n========\n1\nR\n\nVISION ANALYSIS\n===============\nVision model error: Unrecognized message part type: image.",
+        "text": "OCR TEXT\n========\n1\nR\n\nVISION ANALYSIS\n===============\nVision model error: Unrecognized message part type: image."
+    },
+    {
+        "id": 3355,
+        "chunk_id": "train_2_p1_c1",
+        "document": "train_2.png",
+        "page": 1,
+        "chunk_index": 3355,
+        "char_count": 113,
+        "file_hash": "bc43800c5a877cdd2d766a1c7c3454c3c79add90c0079e8937f52bb95bac6d52",
+        "text_preview": "OCR TEXT\n========\n0\nR\n\nVISION ANALYSIS\n===============\nVision model error: Unrecognized message part type: image.",
+        "text": "OCR TEXT\n========\n0\nR\n\nVISION ANALYSIS\n===============\nVision model error: Unrecognized message part type: image."
     }
 ]

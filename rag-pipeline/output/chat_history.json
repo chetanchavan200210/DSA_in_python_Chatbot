@@ -1,0 +1,36 @@
+{
+    "session_1783754497254_ridqshfua": [
+        {
+            "role": "user",
+            "content": "What are the types of dental radiographs?"
+        },
+        {
+            "role": "assistant",
+            "content": "The types of dental radiographs mentioned in the documents include:\n\n*   Bite-wing radiographs\n*   Periapical dental radiographs\n*   Dental radiographs for periodontal diagnosis\n*   Occlusal radiographs (of the maxilla and mandible)\n*   Cephalometric radiographs\n*   Panoramic radiographs\n*   Mandibular posteroanterior radiograph (reverse Towne)\n*   Conventional skull radiographs (axial projection, Schuller projection)\n*   Zygoma tangential posteroanterior skull projection\n*   Lateral cephalometric films\n*   Posteroanterior films\n*   Waters? projections\n*   Lateral jaw films\n*   Cheek tangential radiographs\n\nSource:\n1_Color-Atlas-of-Dental-Medicine-Radiology (1).pdf\nPage:\n7, 9, 26, 118"
+        },
+        {
+            "role": "user",
+            "content": "What are the types of dental radiographs?"
+        },
+        {
+            "role": "assistant",
+            "content": "The types of dental radiographs mentioned in the documents include:\n\n*   Bite-wing radiographs\n*   Periapical dental radiographs\n*   Dental radiographs for periodontal diagnosis\n*   Occlusal radiographs of the maxilla\n*   Cephalometric radiographs\n*   Occlusal radiograph of the mandible\n*   Mandibular posteroanterior radiograph (reverse Towne)\n*   Conventional skull radiographs (axial projection, Schuller projection)\n*   Zygoma tangential posteroanterior skull projection\n*   Lateral cephalometric films\n*   Posteroanterior films\n*   Waters? projections\n*   Lateral jaw films\n*   Cheek tangential radiographs\n\nSource:\n1_Color-Atlas-of-Dental-Medicine-Radiology (1).pdf\nPage:\n7, 9, 26, 118"
+        },
+        {
+            "role": "user",
+            "content": "what is the issue with the xray"
+        },
+        {
+            "role": "assistant",
+            "content": "The issues with X-rays mentioned in the documents include:\n\n*   A napkin chain appearing on the film, making interpretation difficult.\n*   A foreign body, such as an earring, creating a blurred, enlarged ring of radiopacity.\n*   The thumb being used to hold an incorrectly positioned film.\n*   A patient's partial denture not being removed.\n*   A patient's metal-framed eyeglasses not being removed.\n*   Improper targeting of the central ray, producing a 'cone cut'.\n*   Improper targeting of the central ray, resulting in root tips not being visible.\n*   The film packet being placed backwards, making the gridwork of the lead foil visible.\n*   Underexposure.\n*   Warping or bending the film packet.\n\nSource:\n1_Color-Atlas-of-Dental-Medicine-Radiology (1).pdf\nPage:\n96, 97, 101, 102"
+        },
+        {
+            "role": "user",
+            "content": "explain this xray "
+        },
+        {
+            "role": "assistant",
+            "content": "I don't have enough information in the uploaded documents."
+        }
+    ]
+}

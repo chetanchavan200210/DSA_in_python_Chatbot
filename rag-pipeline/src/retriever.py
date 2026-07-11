@@ -1,30 +1,22 @@
-# from pathlib import Path
-
-# from langchain_chroma import Chroma
+from pathlib import Path
 
 from langchain_chroma import Chroma
 
 from config import CHROMA_DIR, TOP_K
 from embeddings import get_embedding_model
-# Project Paths
-# ----------------------------
-
-# BASE_DIR = Path(__file__).resolve().parent.parent
-
-# CHROMA_DIR = BASE_DIR / "chroma_db"
 
 
-# ----------------------------
-# Global Vector Store
-# ----------------------------
+# --------------------------------------------------
+# Singleton Vector Store
+# --------------------------------------------------
 
 _vector_store = None
 
 
 
-# ----------------------------
+# --------------------------------------------------
 # Load Chroma Database
-# ----------------------------
+# --------------------------------------------------
 
 def get_vector_store():
 
@@ -36,8 +28,14 @@ def get_vector_store():
         print("Loading Chroma Database...")
 
 
+        if not Path(CHROMA_DIR).exists():
+            raise FileNotFoundError(
+                f"Chroma database not found: {CHROMA_DIR}"
+            )
+
+
         embedding_model = get_embedding_model()
-    
+
 
         _vector_store = Chroma(
             persist_directory=str(CHROMA_DIR),
@@ -52,31 +50,56 @@ def get_vector_store():
 
 
 
-# ----------------------------
-# Similarity Search
-# ----------------------------
+# --------------------------------------------------
+# Vector Search
+# --------------------------------------------------
+
 def vector_search(query, k=TOP_K):
 
     vector_store = get_vector_store()
 
 
     results = vector_store.similarity_search_with_score(
-        query=query,
-        k=k,
+        query,
+        k=k
     )
 
 
-    return results
+    formatted_results = []
+
+
+    for doc, distance in results:
+
+
+        similarity = max(
+            0,
+            1 - float(distance)
+        )
+
+
+        formatted_results.append(
+            {
+                "document": doc,
+                "score": similarity
+            }
+        )
+
+
+    return formatted_results
 
 
 
-# ----------------------------
-# Format Retrieved Context
-# ----------------------------
+# --------------------------------------------------
+# Build Context
+# --------------------------------------------------
 
 def get_context(query, k=TOP_K):
 
-    results = vector_search(query, k)
+
+    results = vector_search(
+        query,
+        k
+    )
 
 
     context = []
@@ -84,7 +107,12 @@ def get_context(query, k=TOP_K):
     sources = []
 
 
-    for doc, score in results:
+    for item in results:
+
+
+        doc = item["document"]
+
+        score = item["score"]
 
 
         context.append(
@@ -94,58 +122,83 @@ def get_context(query, k=TOP_K):
 
         sources.append(
             {
-                "document": doc.metadata.get("source"),
-                "page": doc.metadata.get("page"),
-                "score": float(score)
+                "document":
+                    doc.metadata.get("source"),
+
+                "page":
+                    doc.metadata.get("page"),
+
+                "type":
+                    doc.metadata.get("type","pdf"),
+
+                "score":
+                    round(score,3)
             }
         )
 
 
     return {
-        "context": "\n\n".join(context),
-        "sources": sources
+
+        "context":
+            "\n\n".join(context),
+
+        "sources":
+            sources
     }
 
 
 
-# ----------------------------
+# --------------------------------------------------
 # Testing
-# ----------------------------
+# --------------------------------------------------
 
-# ----------------------------
-# Testing
-# ----------------------------
 if __name__ == "__main__":
 
-    vector_store = get_vector_store()
 
-    print("\nTotal Chunks in Chroma:")
-    print(vector_store._collection.count())
+    store = get_vector_store()
 
-    all_docs = vector_store.get()
 
-    print("\nDocuments found in Chroma:\n")
+    print(
+        "Total Chunks:",
+        store._collection.count()
+    )
 
-    docs = set()
 
-    for meta in all_docs["metadatas"]:
-        docs.add(meta["source"])
+    question = input(
+        "\nAsk Question: "
+    )
 
-    for doc in sorted(docs):
-        print("-", doc)
-
-    print("\n---------------------------------\n")
-
-    question = input("Ask Question: ")
 
     results = vector_search(question)
 
-    for doc, score in results:
 
-        print("\n-----------------------")
-        print("Similarity Score:", score)
-        print("Source:", doc.metadata.get("source"))
-        print("Page:", doc.metadata.get("page"))
+    for item in results:
 
-        print("\nContent:\n")
-        print(doc.page_content[:500])
+
+        doc = item["document"]
+
+
+        print("\n------------------")
+
+        print(
+            "Score:",
+            item["score"]
+        )
+
+
+        print(
+            "Source:",
+            doc.metadata.get("source")
+        )
+
+
+        print(
+            "Page:",
+            doc.metadata.get("page")
+        )
+
+
+        print(
+            "\n",
+            doc.page_content[:500]
+        )

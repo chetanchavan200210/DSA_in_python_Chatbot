@@ -1,4 +1,4 @@
-import { FaUser } from "react-icons/fa";
+import { FaUser, FaUpload, FaPaperclip, FaTrash, FaCopy, FaCheck } from "react-icons/fa";
 import { BsRobot } from "react-icons/bs";
 
 import { useState, useRef, useEffect } from "react";
@@ -18,6 +18,20 @@ function App() {
     "How to implement binary search in Python?"
   ]);
   const [typedText, setTypedText] = useState("");
+  const [sessionId, setSessionId] = useState(() => {
+    return localStorage.getItem('chatSessionId') || generateSessionId();
+  });
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(null);
+  const fileInputRef = useRef(null);
+
+  function generateSessionId() {
+    const id = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('chatSessionId', id);
+    return id;
+  }
   const scrollToBottom = () => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -61,6 +75,7 @@ function App() {
     try {
       const response = await axios.post("http://localhost:8000/chat", {
         query: message,
+        session_id: sessionId,
       });
 
       const botTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -71,14 +86,18 @@ function App() {
           role: "bot",
           text: response.data.answer,
           sources: response.data.sources || [],
+          related_questions: response.data.related_questions || [],
           timestamp: botTimestamp,
         },
       ]);
 
-      
-      // Update related questions based on user query
-      const newRelatedQuestions = generateRelatedQuestions(message);
-      setRelatedQuestions(newRelatedQuestions);
+      // Update related questions from response or generate based on query
+      if (response.data.related_questions && response.data.related_questions.length > 0) {
+        setRelatedQuestions(response.data.related_questions);
+      } else {
+        const newRelatedQuestions = generateRelatedQuestions(message);
+        setRelatedQuestions(newRelatedQuestions);
+      }
     } catch (error) {
       const errorTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -86,7 +105,7 @@ function App() {
         ...prev,
         {
           role: "bot",
-          text: "Backend not reachable",
+          text: "Backend not reachable. Please ensure the server is running.",
           timestamp: errorTimestamp,
         },
       ]);
@@ -100,6 +119,91 @@ function App() {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post("http://localhost:8000/upload", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setUploadedFiles((prev) => [...prev, {
+        name: response.data.filename,
+        type: response.data.file_type,
+        message: response.data.message,
+        uploadedAt: new Date().toLocaleTimeString(),
+      }]);
+
+      // Add system message about successful upload
+      const uploadTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setChat((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: `✅ File "${response.data.filename}" uploaded successfully. ${response.data.message}`,
+          timestamp: uploadTimestamp,
+        },
+      ]);
+
+      setShowUploadModal(false);
+    } catch (error) {
+      const errorTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setChat((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          text: `❌ Upload failed: ${error.response?.data?.detail || error.message}`,
+          timestamp: errorTimestamp,
+        },
+      ]);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const clearChat = () => {
+    setChat([]);
+    setRelatedQuestions([
+      "What are the types of dental radiographs?",
+      "Explain linked lists in Python",
+      "What is bitewing radiography?",
+      "How to implement binary search in Python?"
+    ]);
+    const newSessionId = generateSessionId();
+    setSessionId(newSessionId);
+  };
+
+  const copyToClipboard = (text, messageId) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessage(messageId);
+    setTimeout(() => setCopiedMessage(null), 2000);
   };
 
   const generateRelatedQuestions = (query) => {
@@ -299,12 +403,28 @@ function App() {
               <span className="chat-header-title">Radiology & Python DSA Assistant</span>
               <span className="chat-header-status">Online</span>
             </div>
-            <button
-              className="chat-header-close"
-              onClick={() => setIsOpen(false)}
-            >
-              ✕
-            </button>
+            <div className="chat-header-actions">
+              <button
+                className="chat-header-action"
+                onClick={() => setShowUploadModal(true)}
+                title="Upload file"
+              >
+                <FaUpload />
+              </button>
+              <button
+                className="chat-header-action"
+                onClick={clearChat}
+                title="Clear chat"
+              >
+                <FaTrash />
+              </button>
+              <button
+                className="chat-header-close"
+                onClick={() => setIsOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="chat-box" ref={chatBoxRef}>
@@ -335,6 +455,13 @@ function App() {
                         ))}
                       </div>
                     )}
+                  <button
+                    className="copy-button"
+                    onClick={() => copyToClipboard(msg.text, index)}
+                    title="Copy message"
+                  >
+                    {copiedMessage === index ? <FaCheck /> : <FaCopy />}
+                  </button>
                 </div>
                 {msg.role === "user" && (
                   <div className="message-avatar">
@@ -376,6 +503,19 @@ function App() {
           </div>
 
           <div className="input-area">
+            <button
+              className="attach-button"
+              onClick={() => fileInputRef.current.click()}
+              title="Attach file"
+            >
+              <FaPaperclip />
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
+            />
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -386,6 +526,49 @@ function App() {
             <button onClick={sendMessage} disabled={isLoading || !message.trim()}>
               ➤
             </button>
+          </div>
+        </div>
+      )}
+
+      {showUploadModal && (
+        <div className="upload-modal" onClick={() => setShowUploadModal(false)}>
+          <div className="upload-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="upload-modal-header">
+              <h3>Upload Document</h3>
+              <button onClick={() => setShowUploadModal(false)}>✕</button>
+            </div>
+            <div
+              className="upload-dropzone"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current.click()}
+            >
+              <FaUpload className="upload-icon" />
+              <p>Drag & drop a file here, or click to select</p>
+              <p className="upload-hint">Supports PDF, images, and text files</p>
+            </div>
+            {uploadedFiles.length > 0 && (
+              <div className="uploaded-files-list">
+                <h4>Uploaded Files</h4>
+                {uploadedFiles.map((file, index) => (
+                  <div key={index} className="uploaded-file-item">
+                    <span className="file-name">📄 {file.name}</span>
+                    <span className="file-type">({file.type})</span>
+                    <span className="file-time">{file.uploadedAt}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {isUploading && (
+              <div className="upload-progress">
+                <div className="loading-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <span>Uploading and processing...</span>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,28 +1,49 @@
+# langchain
+# langchain-core
+# langchain-text-splitters
+
+# langchain-google-genai
+# google-generativeai
+
+# langchain-chroma
+# chromadb
+
+# langchain-huggingface
+# sentence-transformers
+# transformers
+# torch
+
+# rank-bm25
+
+# fastapi
+# uvicorn
+# pydantic
+
+# python-dotenv
+
+# pymupdf
+
+# docling
+
+# numpy
 langchain
-langchain-core
-langchain-text-splitters
-
 langchain-google-genai
-google-generativeai
-
 langchain-chroma
-chromadb
-
 langchain-huggingface
-sentence-transformers
-transformers
-torch
-
-rank-bm25
 
 fastapi
 uvicorn
-pydantic
-
 python-dotenv
+
+rank-bm25
+
+pillow
+python-multipart
+
+easyocr
+
+opencv-python
 
 pymupdf
 
 docling
-
-numpy
